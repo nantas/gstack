@@ -97,37 +97,53 @@ This is the setup I use. One person, ten parallel agents, each with the right co
 
 ## Install
 
-**Requirements:** [Claude Code](https://docs.anthropic.com/en/docs/claude-code), [Git](https://git-scm.com/), [Bun](https://bun.sh/) v1.0+. `/browse` compiles a native binary — works on macOS and Linux (x64 and arm64).
+**Requirements:** [Claude Code](https://docs.anthropic.com/en/docs/claude-code) or Codex CLI/TUI, [Git](https://git-scm.com/), [Bun](https://bun.sh/) v1.0+. `/browse` compiles a native binary — works on macOS and Linux (x64 and arm64).
 
 ### Step 1: Install on your machine
 
+#### Claude Code
+
 Open Claude Code and paste this. Claude will do the rest.
 
-> Install gstack: run `git clone https://github.com/garrytan/gstack.git ~/.claude/skills/gstack && cd ~/.claude/skills/gstack && ./setup` then add a "gstack" section to CLAUDE.md that says to use the /browse skill from gstack for all web browsing, never use mcp\_\_claude-in-chrome\_\_\* tools, and lists the available skills: /plan-ceo-review, /plan-eng-review, /review, /ship, /browse, /qa, /setup-browser-cookies, /retro. Then ask the user if they also want to add gstack to the current project so teammates get it.
+> Install gstack: run `git clone https://github.com/nantas/gstack ~/.claude/skills/gstack && cd ~/.claude/skills/gstack && ./setup` then add a "gstack" section to CLAUDE.md that says to use the /browse skill from gstack for all web browsing, never use mcp\_\_claude-in-chrome\_\_\* tools, and lists the available skills: /plan-ceo-review, /plan-eng-review, /review, /ship, /browse, /qa, /setup-browser-cookies, /retro. Then ask the user if they also want to add gstack to the current project so teammates get it.
+
+#### Codex TUI
+
+Open Codex TUI and paste this. The agent can complete the install end-to-end.
+
+> Install gstack for Codex: run `mkdir -p ~/.agents/skills && git clone https://github.com/nantas/gstack ~/.agents/skills/gstack && cd ~/.agents/skills/gstack && ./setup`. In Codex `.agents` mode, no extra skill symlink step is required.
 
 ### Step 2: Add to your repo so teammates get it (optional)
 
+#### Claude Code
+
 > Add gstack to this project: run `cp -Rf ~/.claude/skills/gstack .claude/skills/gstack && rm -rf .claude/skills/gstack/.git && cd .claude/skills/gstack && ./setup` then add a "gstack" section to this project's CLAUDE.md that says to use the /browse skill from gstack for all web browsing, never use mcp\_\_claude-in-chrome\_\_\* tools, lists the available skills: /plan-ceo-review, /plan-eng-review, /review, /ship, /browse, /qa, /setup-browser-cookies, /retro, and tells Claude that if gstack skills aren't working, run `cd .claude/skills/gstack && ./setup` to build the binary and register skills.
 
-Real files get committed to your repo (not a submodule), so `git clone` just works. The binary and node\_modules are gitignored — teammates just need to run `cd .claude/skills/gstack && ./setup` once to build (or `/browse` handles it automatically on first use).
+#### Codex TUI
+
+> Add gstack to this project for Codex: run `mkdir -p .agents/skills && cp -Rf ~/.agents/skills/gstack .agents/skills/gstack && rm -rf .agents/skills/gstack/.git && cd .agents/skills/gstack && ./setup`. Then update this repo's `AGENTS.md` with a "gstack" section that says: use `/browse` from gstack for all browser work, never use `mcp__claude-in-chrome__*`, and lists available skills `/plan-ceo-review`, `/plan-eng-review`, `/review`, `/ship`, `/browse`, `/qa`, `/setup-browser-cookies`, `/retro`.
+
+Real files get committed to your repo (not a submodule), so `git clone` just works. The binary and node\_modules are gitignored — teammates just need to run `cd .claude/skills/gstack && ./setup` (or `cd .agents/skills/gstack && ./setup`) once to build.
 
 ### Codex skill path (experimental)
 
-gstack now supports `.codex/skills/gstack` in addition to `.claude/skills/gstack`.
+gstack now supports `.agents/skills/gstack` in addition to `.claude/skills/gstack`.
 
-- Global Codex path example: `~/.codex/skills/gstack`
-- Project Codex path example: `.codex/skills/gstack`
-- Provider switch: `GSTACK_AGENT_PROVIDER=codex` (default remains `claude`)
+- Global Codex path example: `~/.agents/skills/gstack`
+- Project Codex path example: `.agents/skills/gstack`
+
+For interactive Codex TUI usage, you do **not** need `GSTACK_AGENT_PROVIDER`.
+That env var is only for the gstack test harness/provider-routing scripts.
 
 ### What gets installed
 
-- Skill files (Markdown prompts) in `~/.claude/skills/gstack/` or `~/.codex/skills/gstack/` (and project-local `.claude/.codex` equivalents)
-- Symlinks under the active skills root (`~/.claude/skills/*` or `~/.codex/skills/*`) pointing into the gstack directory
+- Skill files (Markdown prompts) in `~/.claude/skills/gstack/` or `~/.agents/skills/gstack/` (and project-local `.claude/.agents` equivalents)
+- Claude path uses symlinks under `~/.claude/skills/*` pointing into gstack; Codex `.agents` path does not require per-skill symlinks
 - Browser binary at `browse/dist/browse` (~58MB, gitignored)
 - `node_modules/` (gitignored)
 - `/retro` saves JSON snapshots to `.context/retros/` in your project for trend tracking
 
-Everything lives inside your active skill root (`.claude` or `.codex`). Nothing touches your PATH or runs in the background.
+Everything lives inside your active skill root (`.claude` or `.agents`). Nothing touches your PATH or runs in the background.
 
 ---
 
