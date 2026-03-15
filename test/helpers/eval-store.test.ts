@@ -96,6 +96,14 @@ describe('EvalCollector', () => {
     expect(data.total_duration_ms).toBe(3000);
     expect(data.timestamp).toBeTruthy();
     expect(data.hostname).toBeTruthy();
+    expect(data.provider).toBeTruthy();
+  });
+
+  test('provider field is backward-compatible for comparison with older files', () => {
+    const before = makeResult({ provider: undefined as any });
+    const after = makeResult({ provider: 'codex' });
+    const comparison = compareEvalResults(before, after, 'before.json', 'after.json');
+    expect(comparison.deltas.length).toBeGreaterThanOrEqual(1);
   });
 
   test('finalize creates directory if missing', async () => {
@@ -114,7 +122,8 @@ describe('EvalCollector', () => {
 
     expect(filepath1).toBeTruthy();
     expect(filepath2).toBe(''); // second call returns empty
-    expect(fs.readdirSync(tmpDir).filter(f => f.endsWith('.json'))).toHaveLength(1);
+    // Final eval file should be unique; partial checkpoint file may coexist.
+    expect(fs.readdirSync(tmpDir).filter(f => f.endsWith('.json') && !f.startsWith('_'))).toHaveLength(1);
   });
 
   test('empty collector writes valid file', async () => {

@@ -22,6 +22,7 @@ export interface EvalTestEntry {
   name: string;
   suite: string;
   tier: 'e2e' | 'llm-judge';
+  provider?: string;
   passed: boolean;
   duration_ms: number;
   cost_usd: number;
@@ -60,6 +61,7 @@ export interface EvalResult {
   timestamp: string;
   hostname: string;
   tier: 'e2e' | 'llm-judge';
+  provider?: string;
   total_tests: number;
   passed: number;
   failed: number;
@@ -400,6 +402,7 @@ export class EvalCollector {
         timestamp: new Date().toISOString(),
         hostname: os.hostname(),
         tier: this.tier,
+        provider: process.env.GSTACK_AGENT_PROVIDER || 'claude',
         total_tests: this.tests.length,
         passed,
         failed: this.tests.length - passed,
@@ -436,6 +439,7 @@ export class EvalCollector {
       timestamp,
       hostname: os.hostname(),
       tier: this.tier,
+      provider: process.env.GSTACK_AGENT_PROVIDER || 'claude',
       total_tests: this.tests.length,
       passed,
       failed: this.tests.length - passed,
