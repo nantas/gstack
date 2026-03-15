@@ -194,7 +194,7 @@ Three reasons:
 | Tier | What | Cost | Speed |
 |------|------|------|-------|
 | 1 — Static validation | Parse every `$B` command in SKILL.md, validate against registry | Free | <2s |
-| 2 — E2E via `claude -p` | Spawn real Claude session, run each skill, check for errors | ~$3.85 | ~20min |
+| 2 — E2E via provider runner | Spawn real provider session (`claude -p` or `codex exec`), run each skill, check for errors | ~$3.85 | ~20min |
 | 3 — LLM-as-judge | Sonnet scores docs on clarity/completeness/actionability | ~$0.15 | ~30s |
 
 Tier 1 runs on every `bun test`. Tiers 2+3 are gated behind `EVALS=1`. The idea is: catch 95% of issues for free, use LLMs only for judgment calls.
@@ -233,9 +233,9 @@ The server doesn't try to self-heal. If Chromium crashes (`browser.on('disconnec
 
 ## E2E test infrastructure
 
-### Session runner (`test/helpers/session-runner.ts`)
+### Runner adapters (`test/helpers/claude-runner.ts`, `test/helpers/codex-runner.ts`)
 
-E2E tests spawn `claude -p` as a completely independent subprocess — not via the Agent SDK, which can't nest inside Claude Code sessions. The runner:
+E2E tests run through a provider runner factory (`test/helpers/runner-factory.ts`) with a normalized result contract (`test/helpers/runner-types.ts`). The Claude adapter remains an independent subprocess runner (not Agent SDK, so it can run inside Claude Code sessions):
 
 1. Writes the prompt to a temp file (avoids shell escaping issues)
 2. Spawns `sh -c 'cat prompt | claude -p --output-format stream-json --verbose'`
@@ -255,7 +255,7 @@ The `parseNDJSON()` function is pure — no I/O, no side effects — making it i
   ┌─────┼──────────────────────────────┐
   │     │                              │
   │  runSkillTest()              evalCollector
-  │  (session-runner.ts)         (eval-store.ts)
+  │  (runner-factory.ts)         (eval-store.ts)
   │     │                              │
   │  per tool call:              per addTest():
   │  ┌──┼──────────┐              savePartial()
@@ -308,7 +308,7 @@ The `EvalCollector` accumulates test results and writes them in two ways:
 | Tier | What | Cost | Speed |
 |------|------|------|-------|
 | 1 — Static validation | Parse `$B` commands, validate against registry, observability unit tests | Free | <5s |
-| 2 — E2E via `claude -p` | Spawn real Claude session, run each skill, scan for errors | ~$3.85 | ~20min |
+| 2 — E2E via provider runner | Spawn real provider session (`claude -p` or `codex exec`), run each skill, scan for errors | ~$3.85 | ~20min |
 | 3 — LLM-as-judge | Sonnet scores docs on clarity/completeness/actionability | ~$0.15 | ~30s |
 
 Tier 1 runs on every `bun test`. Tiers 2+3 are gated behind `EVALS=1`. The idea: catch 95% of issues for free, use LLMs only for judgment calls and integration testing.

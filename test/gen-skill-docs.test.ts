@@ -129,6 +129,19 @@ describe('gen-skill-docs', () => {
     expect(browseTmpl).toContain('{{COMMAND_REFERENCE}}');
     expect(browseTmpl).toContain('{{SNAPSHOT_FLAGS}}');
   });
+
+  test('generated setup/update blocks support both codex and claude skill roots', () => {
+    const content = fs.readFileSync(path.join(ROOT, 'SKILL.md'), 'utf-8');
+    expect(content).toContain('.codex/skills/gstack');
+    expect(content).toContain('.claude/skills/gstack');
+  });
+
+  test('high-impact generated skills avoid hardcoded .claude review checklist path', () => {
+    const review = fs.readFileSync(path.join(ROOT, 'review', 'SKILL.md'), 'utf-8');
+    const ship = fs.readFileSync(path.join(ROOT, 'ship', 'SKILL.md'), 'utf-8');
+    expect(review).not.toContain('.claude/skills/review/checklist.md');
+    expect(ship).not.toContain('.claude/skills/review/checklist.md');
+  });
 });
 
 /**

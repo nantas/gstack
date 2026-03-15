@@ -181,6 +181,7 @@ The browser automation layer is built on [Playwright](https://playwright.dev/) b
 ```bash
 bun install              # install dependencies + Playwright Chromium
 bun test                 # run integration tests (~3s)
+bun run test:e2e:codex   # codex runner smoke path
 bun run dev <cmd>        # run CLI from source (no compile)
 bun run build            # compile to browse/dist/browse
 ```

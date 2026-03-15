@@ -150,6 +150,13 @@ describe('Generated SKILL.md freshness', () => {
     const content = fs.readFileSync(path.join(ROOT, 'SKILL.md'), 'utf-8');
     expect(content).toContain('AUTO-GENERATED');
   });
+
+  test('high-impact skills do not hardcode claude-only review checklist paths', () => {
+    const reviewContent = fs.readFileSync(path.join(ROOT, 'review', 'SKILL.md'), 'utf-8');
+    const shipContent = fs.readFileSync(path.join(ROOT, 'ship', 'SKILL.md'), 'utf-8');
+    expect(reviewContent).not.toContain('.claude/skills/review/checklist.md');
+    expect(shipContent).not.toContain('.claude/skills/review/checklist.md');
+  });
 });
 
 // --- Update check preamble validation ---

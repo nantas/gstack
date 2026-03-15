@@ -19,11 +19,18 @@ allowed-tools:
 ## Update Check (run first)
 
 ```bash
-_UPD=$(~/.claude/skills/gstack/bin/gstack-update-check 2>/dev/null || .claude/skills/gstack/bin/gstack-update-check 2>/dev/null || true)
-[ -n "$_UPD" ] && echo "$_UPD" || true
+_ROOT=$(git rev-parse --show-toplevel 2>/dev/null)
+_SKILL_DIR=""
+for _CAND in   "$_ROOT/.codex/skills/gstack"   "$_ROOT/.claude/skills/gstack"   "$HOME/.codex/skills/gstack"   "$HOME/.claude/skills/gstack"; do
+  [ -n "$_CAND" ] && [ -x "$_CAND/bin/gstack-update-check" ] && _SKILL_DIR="$_CAND" && break
+done
+if [ -n "$_SKILL_DIR" ]; then
+  _UPD=$("$_SKILL_DIR/bin/gstack-update-check" 2>/dev/null || true)
+  [ -n "$_UPD" ] && echo "$_UPD" || true
+fi
 ```
 
-If output shows `UPGRADE_AVAILABLE <old> <new>`: read `~/.claude/skills/gstack/gstack-upgrade/SKILL.md` and follow the "Inline upgrade flow" (AskUserQuestion → upgrade if yes, `touch ~/.gstack/last-update-check` if no). If `JUST_UPGRADED <from> <to>`: tell user "Running gstack v{to} (just updated!)" and continue.
+If output shows `UPGRADE_AVAILABLE <old> <new>`: read `<active-skill-dir>/gstack-upgrade/SKILL.md` and follow the inline upgrade flow (use your interactive question tool; upgrade if yes, `touch ~/.gstack/last-update-check` if no). If `JUST_UPGRADED <from> <to>`: tell user "Running gstack v{to} (just updated!)" and continue.
 
 # Pre-Landing PR Review
 
@@ -41,7 +48,7 @@ You are running the `/review` workflow. Analyze the current branch's diff agains
 
 ## Step 2: Read the checklist
 
-Read `.claude/skills/review/checklist.md`.
+Read `review/checklist.md` from the active gstack skill directory.
 
 **If the file cannot be read, STOP and report the error.** Do not proceed without the checklist.
 
@@ -49,7 +56,7 @@ Read `.claude/skills/review/checklist.md`.
 
 ## Step 2.5: Check for Greptile review comments
 
-Read `.claude/skills/review/greptile-triage.md` and follow the fetch, filter, and classify steps.
+Read `review/greptile-triage.md` from the active gstack skill directory and follow the fetch, filter, and classify steps.
 
 **If no PR exists, `gh` fails, API returns an error, or there are zero Greptile comments:** Skip this step silently. Greptile integration is additive — the review works without it.
 
@@ -84,7 +91,7 @@ Follow the output format specified in the checklist. Respect the suppressions �
 
 **Always output ALL findings** — both critical and informational. The user must see every issue.
 
-- If CRITICAL issues found: output all findings, then for EACH critical issue use a separate AskUserQuestion with the problem, your recommended fix, and options (A: Fix it now, B: Acknowledge, C: False positive — skip).
+- If CRITICAL issues found: output all findings, then for EACH critical issue use a separate interactive question prompt with the problem, your recommended fix, and options (A: Fix it now, B: Acknowledge, C: False positive — skip).
   After all critical questions are answered, output a summary of what the user chose for each issue. If the user chose A (fix) on any issue, apply the recommended fixes. If only B/C were chosen, no action needed.
 - If only non-critical issues found: output findings. No further action needed.
 - If no issues found: output `Pre-Landing Review: No issues found.`
@@ -95,9 +102,9 @@ After outputting your own findings, if Greptile comments were classified in Step
 
 **Include a Greptile summary in your output header:** `+ N Greptile comments (X valid, Y fixed, Z FP)`
 
-1. **VALID & ACTIONABLE comments:** These are already included in your CRITICAL findings — they follow the same AskUserQuestion flow (A: Fix it now, B: Acknowledge, C: False positive). If the user chooses C (false positive), post a reply using the appropriate API from the triage doc and save the pattern to both per-project and global greptile-history (see greptile-triage.md for write details).
+1. **VALID & ACTIONABLE comments:** These are already included in your CRITICAL findings — they follow the same interactive question flow (A: Fix it now, B: Acknowledge, C: False positive). If the user chooses C (false positive), post a reply using the appropriate API from the triage doc and save the pattern to both per-project and global greptile-history (see greptile-triage.md for write details).
 
-2. **FALSE POSITIVE comments:** Present each one via AskUserQuestion:
+2. **FALSE POSITIVE comments:** Present each one via your interactive question tool:
    - Show the Greptile comment: file:line (or [top-level]) + body summary + permalink URL
    - Explain concisely why it's a false positive
    - Options:
@@ -107,7 +114,7 @@ After outputting your own findings, if Greptile comments were classified in Step
 
    If the user chooses A, post a reply using the appropriate API from the triage doc and save the pattern to both per-project and global greptile-history (see greptile-triage.md for write details).
 
-3. **VALID BUT ALREADY FIXED comments:** Reply acknowledging the catch — no AskUserQuestion needed:
+3. **VALID BUT ALREADY FIXED comments:** Reply acknowledging the catch — no interactive question needed:
    - Post reply: `"Good catch — already fixed in <commit-sha>."`
    - Save to both per-project and global greptile-history (see greptile-triage.md for write details)
 

@@ -19,11 +19,18 @@ allowed-tools:
 ## Update Check (run first)
 
 ```bash
-_UPD=$(~/.claude/skills/gstack/bin/gstack-update-check 2>/dev/null || .claude/skills/gstack/bin/gstack-update-check 2>/dev/null || true)
-[ -n "$_UPD" ] && echo "$_UPD" || true
+_ROOT=$(git rev-parse --show-toplevel 2>/dev/null)
+_SKILL_DIR=""
+for _CAND in   "$_ROOT/.codex/skills/gstack"   "$_ROOT/.claude/skills/gstack"   "$HOME/.codex/skills/gstack"   "$HOME/.claude/skills/gstack"; do
+  [ -n "$_CAND" ] && [ -x "$_CAND/bin/gstack-update-check" ] && _SKILL_DIR="$_CAND" && break
+done
+if [ -n "$_SKILL_DIR" ]; then
+  _UPD=$("$_SKILL_DIR/bin/gstack-update-check" 2>/dev/null || true)
+  [ -n "$_UPD" ] && echo "$_UPD" || true
+fi
 ```
 
-If output shows `UPGRADE_AVAILABLE <old> <new>`: read `~/.claude/skills/gstack/gstack-upgrade/SKILL.md` and follow the "Inline upgrade flow" (AskUserQuestion → upgrade if yes, `touch ~/.gstack/last-update-check` if no). If `JUST_UPGRADED <from> <to>`: tell user "Running gstack v{to} (just updated!)" and continue.
+If output shows `UPGRADE_AVAILABLE <old> <new>`: read `<active-skill-dir>/gstack-upgrade/SKILL.md` and follow the inline upgrade flow (use your interactive question tool; upgrade if yes, `touch ~/.gstack/last-update-check` if no). If `JUST_UPGRADED <from> <to>`: tell user "Running gstack v{to} (just updated!)" and continue.
 
 # /qa: Systematic QA Testing
 
@@ -50,8 +57,9 @@ You are a QA engineer. Test web applications like a real user — click everythi
 ```bash
 _ROOT=$(git rev-parse --show-toplevel 2>/dev/null)
 B=""
-[ -n "$_ROOT" ] && [ -x "$_ROOT/.claude/skills/gstack/browse/dist/browse" ] && B="$_ROOT/.claude/skills/gstack/browse/dist/browse"
-[ -z "$B" ] && B=~/.claude/skills/gstack/browse/dist/browse
+for _CAND in   "$_ROOT/.codex/skills/gstack/browse/dist/browse"   "$_ROOT/.claude/skills/gstack/browse/dist/browse"   "$HOME/.codex/skills/gstack/browse/dist/browse"   "$HOME/.claude/skills/gstack/browse/dist/browse"; do
+  [ -n "$_CAND" ] && [ -x "$_CAND" ] && B="$_CAND" && break
+done
 if [ -x "$B" ]; then
   echo "READY: $B"
 else

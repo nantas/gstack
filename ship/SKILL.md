@@ -18,11 +18,18 @@ allowed-tools:
 ## Update Check (run first)
 
 ```bash
-_UPD=$(~/.claude/skills/gstack/bin/gstack-update-check 2>/dev/null || .claude/skills/gstack/bin/gstack-update-check 2>/dev/null || true)
-[ -n "$_UPD" ] && echo "$_UPD" || true
+_ROOT=$(git rev-parse --show-toplevel 2>/dev/null)
+_SKILL_DIR=""
+for _CAND in   "$_ROOT/.codex/skills/gstack"   "$_ROOT/.claude/skills/gstack"   "$HOME/.codex/skills/gstack"   "$HOME/.claude/skills/gstack"; do
+  [ -n "$_CAND" ] && [ -x "$_CAND/bin/gstack-update-check" ] && _SKILL_DIR="$_CAND" && break
+done
+if [ -n "$_SKILL_DIR" ]; then
+  _UPD=$("$_SKILL_DIR/bin/gstack-update-check" 2>/dev/null || true)
+  [ -n "$_UPD" ] && echo "$_UPD" || true
+fi
 ```
 
-If output shows `UPGRADE_AVAILABLE <old> <new>`: read `~/.claude/skills/gstack/gstack-upgrade/SKILL.md` and follow the "Inline upgrade flow" (AskUserQuestion → upgrade if yes, `touch ~/.gstack/last-update-check` if no). If `JUST_UPGRADED <from> <to>`: tell user "Running gstack v{to} (just updated!)" and continue.
+If output shows `UPGRADE_AVAILABLE <old> <new>`: read `<active-skill-dir>/gstack-upgrade/SKILL.md` and follow the inline upgrade flow (use your interactive question tool; upgrade if yes, `touch ~/.gstack/last-update-check` if no). If `JUST_UPGRADED <from> <to>`: tell user "Running gstack v{to} (just updated!)" and continue.
 
 # Ship: Fully Automated Ship Workflow
 
@@ -157,7 +164,7 @@ If multiple suites need to run, run them sequentially (each needs a test lane). 
 
 Review the diff for structural issues that tests don't catch.
 
-1. Read `.claude/skills/review/checklist.md`. If the file cannot be read, **STOP** and report the error.
+1. Read `review/checklist.md` from the active gstack skill directory. If the file cannot be read, **STOP** and report the error.
 
 2. Run `git diff origin/main` to get the full diff (scoped to feature changes against the freshly-fetched remote main).
 
@@ -169,7 +176,7 @@ Review the diff for structural issues that tests don't catch.
 
 5. Output a summary header: `Pre-Landing Review: N issues (X critical, Y informational)`
 
-6. **If CRITICAL issues found:** For EACH critical issue, use a separate AskUserQuestion with:
+6. **If CRITICAL issues found:** For EACH critical issue, use a separate interactive question prompt with:
    - The problem (`file:line` + description)
    - Your recommended fix
    - Options: A) Fix it now (recommend), B) Acknowledge and ship anyway, C) It's a false positive — skip
@@ -185,7 +192,7 @@ Save the review output — it goes into the PR body in Step 8.
 
 ## Step 3.75: Address Greptile review comments (if PR exists)
 
-Read `.claude/skills/review/greptile-triage.md` and follow the fetch, filter, and classify steps.
+Read `review/greptile-triage.md` from the active gstack skill directory and follow the fetch, filter, and classify steps.
 
 **If no PR exists, `gh` fails, API returns an error, or there are zero Greptile comments:** Skip this step silently. Continue to Step 4.
 
@@ -195,18 +202,18 @@ Include a Greptile summary in your output: `+ N Greptile comments (X valid, Y fi
 
 For each classified comment:
 
-**VALID & ACTIONABLE:** Use AskUserQuestion with:
+**VALID & ACTIONABLE:** Use an interactive question prompt with:
 - The comment (file:line or [top-level] + body summary + permalink URL)
 - Your recommended fix
 - Options: A) Fix now (recommended), B) Acknowledge and ship anyway, C) It's a false positive
 - If user chooses A: apply the fix, commit the fixed files (`git add <fixed-files> && git commit -m "fix: address Greptile review — <brief description>"`), reply to the comment (`"Fixed in <commit-sha>."`), and save to both per-project and global greptile-history (see greptile-triage.md for write details, type: fix).
 - If user chooses C: reply explaining the false positive, save to both per-project and global greptile-history (type: fp).
 
-**VALID BUT ALREADY FIXED:** Reply acknowledging the catch — no AskUserQuestion needed:
+**VALID BUT ALREADY FIXED:** Reply acknowledging the catch — no interactive question needed:
 - Post reply: `"Good catch — already fixed in <commit-sha>."`
 - Save to both per-project and global greptile-history (see greptile-triage.md for write details, type: already-fixed)
 
-**FALSE POSITIVE:** Use AskUserQuestion:
+**FALSE POSITIVE:** Use your interactive question tool:
 - Show the comment and why you think it's wrong (file:line or [top-level] + body summary + permalink URL)
 - Options:
   - A) Reply to Greptile explaining the false positive (recommended if clearly wrong)
@@ -347,7 +354,7 @@ EOF
 - **Never skip tests.** If tests fail, stop.
 - **Never skip the pre-landing review.** If checklist.md is unreadable, stop.
 - **Never force push.** Use regular `git push` only.
-- **Never ask for confirmation** except for MINOR/MAJOR version bumps and CRITICAL review findings (one AskUserQuestion per critical issue with fix recommendation).
+- **Never ask for confirmation** except for MINOR/MAJOR version bumps and CRITICAL review findings (one interactive question per critical issue with fix recommendation).
 - **Always use the 4-digit version format** from the VERSION file.
 - **Date format in CHANGELOG:** `YYYY-MM-DD`
 - **Split commits for bisectability** — each commit = one logical change.
