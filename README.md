@@ -111,15 +111,23 @@ Open Claude Code and paste this. Claude will do the rest.
 
 Real files get committed to your repo (not a submodule), so `git clone` just works. The binary and node\_modules are gitignored — teammates just need to run `cd .claude/skills/gstack && ./setup` once to build (or `/browse` handles it automatically on first use).
 
+### Codex skill path (experimental)
+
+gstack now supports `.codex/skills/gstack` in addition to `.claude/skills/gstack`.
+
+- Global Codex path example: `~/.codex/skills/gstack`
+- Project Codex path example: `.codex/skills/gstack`
+- Provider switch: `GSTACK_AGENT_PROVIDER=codex` (default remains `claude`)
+
 ### What gets installed
 
-- Skill files (Markdown prompts) in `~/.claude/skills/gstack/` (or `.claude/skills/gstack/` for project installs)
-- Symlinks at `~/.claude/skills/browse`, `~/.claude/skills/qa`, `~/.claude/skills/review`, etc. pointing into the gstack directory
+- Skill files (Markdown prompts) in `~/.claude/skills/gstack/` or `~/.codex/skills/gstack/` (and project-local `.claude/.codex` equivalents)
+- Symlinks under the active skills root (`~/.claude/skills/*` or `~/.codex/skills/*`) pointing into the gstack directory
 - Browser binary at `browse/dist/browse` (~58MB, gitignored)
 - `node_modules/` (gitignored)
 - `/retro` saves JSON snapshots to `.context/retros/` in your project for trend tracking
 
-Everything lives inside `.claude/`. Nothing touches your PATH or runs in the background.
+Everything lives inside your active skill root (`.claude` or `.codex`). Nothing touches your PATH or runs in the background.
 
 ---
 
@@ -624,11 +632,17 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for setup, testing, and dev mode. See [AR
 ### Testing
 
 ```bash
-bun test                     # free static tests (<5s)
-EVALS=1 bun run test:evals   # full E2E + LLM evals (~$4, ~20min)
-bun run eval:watch            # live dashboard during E2E runs
+bun run verify:free          # fixed default scope: free regression + skill health
+bun run test:regression:free # free regression tests only
+bun test                     # same as above
+EVALS=1 bun run test:evals   # optional paid evals (LLM judge + E2E)
+bun run test:e2e:codex       # optional Codex E2E smoke path
+bun run eval:watch           # live dashboard during E2E runs
 ```
 
+Default policy: use `verify:free` for routine validation and skip API/paid evals unless explicitly required.
+Fixed free scope (no model/API cost by default): `test:regression:free` + `skill:check`.
+See `docs/verification-scope.md` for the locked default verification boundary.
 E2E tests stream real-time progress, write machine-readable diagnostics, and persist partial results that survive kills. See CONTRIBUTING.md for the full eval infrastructure.
 
 ## License

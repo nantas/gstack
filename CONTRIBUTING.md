@@ -65,12 +65,12 @@ bin/dev-teardown
 ### Setup
 
 ```bash
-# 1. Copy .env.example and add your API key
-cp .env.example .env
-# Edit .env → set ANTHROPIC_API_KEY=sk-ant-...
-
-# 2. Install deps (if you haven't already)
+# 1. Install deps
 bun install
+
+# 2. (Optional, paid evals only) configure API key
+cp .env.example .env
+# Edit .env → set ANTHROPIC_API_KEY=...
 ```
 
 Bun auto-loads `.env` — no extra config. Conductor workspaces inherit `.env` from the main worktree automatically (see "Conductor workspaces" below).
@@ -80,14 +80,21 @@ Bun auto-loads `.env` — no extra config. Conductor workspaces inherit `.env` f
 | Tier | Command | Cost | What it tests |
 |------|---------|------|---------------|
 | 1 — Static | `bun test` | Free | Command validation, snapshot flags, SKILL.md correctness, observability unit tests |
-| 2 — E2E | `bun run test:e2e` | ~$3.85 | Full skill execution via `claude -p` subprocess |
+| 2 — E2E | `bun run test:e2e` | ~$3.85 | Full skill execution via provider runner (`claude -p` by default) |
 | 3 — LLM eval | `bun run test:evals` | ~$4 | E2E + LLM-as-judge combined |
 
 ```bash
+bun run verify:free          # fixed default scope (free, no API cost)
 bun test                     # Tier 1 only (runs on every commit, <5s)
 bun run test:e2e             # Tier 2: E2E (needs EVALS=1, can't run inside Claude Code)
+bun run test:e2e:codex       # Tier 2 Codex smoke path
 bun run test:evals           # Tier 2 + 3 combined (~$4/run)
 ```
+
+Default regression scope for routine development is fixed to:
+
+- `bun run test:regression:free`
+- `bun run skill:check`
 
 ### Tier 1: Static validation (free)
 
@@ -97,9 +104,9 @@ Runs automatically with `bun test`. No API keys needed.
 - **Skill validation tests** (`test/skill-validation.test.ts`) — Validates that SKILL.md files reference only real commands and flags, and that command descriptions meet quality thresholds.
 - **Generator tests** (`test/gen-skill-docs.test.ts`) — Tests the template system: verifies placeholders resolve correctly, output includes value hints for flags (e.g. `-d <N>` not just `-d`), enriched descriptions for key commands (e.g. `is` lists valid states, `press` lists key examples).
 
-### Tier 2: E2E via `claude -p` (~$3.85/run)
+### Tier 2: E2E via provider runner (~$3.85/run)
 
-Spawns `claude -p` as a subprocess with `--output-format stream-json --verbose`, streams NDJSON for real-time progress, and scans for browse errors. This is the closest thing to "does this skill actually work end-to-end?"
+Spawns provider subprocesses (`claude -p` and/or `codex exec --json --ephemeral`) via runner adapters, streams JSON events, and scans for browse errors. This is the closest thing to "does this skill actually work end-to-end?"
 
 ```bash
 # Must run from a plain terminal — can't nest inside Claude Code or Conductor
@@ -111,7 +118,7 @@ EVALS=1 bun test test/skill-e2e.test.ts
 - API connectivity pre-check — fails fast on ConnectionRefused before burning budget
 - Real-time progress to stderr: `[Ns] turn T tool #C: Name(...)`
 - Saves full NDJSON transcripts and failure JSON for debugging
-- Tests live in `test/skill-e2e.test.ts`, runner logic in `test/helpers/session-runner.ts`
+- Tests live in `test/skill-e2e.test.ts`, runner logic in `test/helpers/claude-runner.ts`, `test/helpers/codex-runner.ts`, and `test/helpers/runner-factory.ts`
 
 ### E2E observability
 
